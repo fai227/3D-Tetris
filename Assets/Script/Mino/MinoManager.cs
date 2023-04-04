@@ -26,10 +26,7 @@ public class MinoManager : MonoBehaviour
     public GameObject deleteEffect;
     public GameObject dropParticle;
 
-    [Header("3D Test")]
     public GameObject cubisObject;
-    public GameObject tSpinMini;
-    public GameObject tSpin;
 
     public static MinoManager instance;
     private void Awake()
@@ -56,11 +53,6 @@ public static class SRS
     public enum Direction
     {
         Right, Left
-    }
-
-    public enum T_Spin
-    {
-        T_Spin, T_Spin_Mini, None,
     }
 
     private static Vector2[][] ALPHA_LEFT_MOVES = new Vector2[][] {
@@ -97,79 +89,7 @@ public static class SRS
         return ALPHA_LEFT_MOVES[rotation];
     }
 
-    public static Vector2[] GetHorizontalAlphaMoves(Direction direction)
-    {
-        Vector2[] ALPHA_MOVES = new Vector2[8];
-
-        int i = 0;
-        if (direction == Direction.Right)
-        {
-            foreach (Vector2 move in ALPHA_RIGHT_MOVES[0])
-            {
-                ALPHA_MOVES[i] = move;
-                i += 2;
-            }
-            i = 1;
-            foreach (Vector2 move in ALPHA_RIGHT_MOVES[2])
-            {
-                ALPHA_MOVES[i] = move;
-                i += 2;
-            }
-        }
-        else
-        {
-            foreach (Vector2 move in ALPHA_LEFT_MOVES[0])
-            {
-                ALPHA_MOVES[i] = move;
-                i += 2;
-            }
-            i = 1;
-            foreach (Vector2 move in ALPHA_LEFT_MOVES[2])
-            {
-                ALPHA_MOVES[i] = move;
-                i += 2;
-            }
-        }
-
-        return ALPHA_MOVES;
-    }
-
-    public static Vector2[] GetVerticalAlphaMoves(Direction direction)
-    {
-        Vector2[] ALPHA_MOVES = new Vector2[8];
-
-        int i = 0;
-        if (direction == Direction.Right)
-        {
-            foreach (Vector2 move in ALPHA_RIGHT_MOVES[1])
-            {
-                ALPHA_MOVES[i] = move;
-                i += 2;
-            }
-            i = 1;
-            foreach (Vector2 move in ALPHA_RIGHT_MOVES[3])
-            {
-                ALPHA_MOVES[i] = move;
-                i += 2;
-            }
-        }
-        else
-        {
-            foreach (Vector2 move in ALPHA_LEFT_MOVES[1])
-            {
-                ALPHA_MOVES[i] = move;
-                i += 2;
-            }
-            i = 1;
-            foreach (Vector2 move in ALPHA_LEFT_MOVES[3])
-            {
-                ALPHA_MOVES[i] = move;
-                i += 2;
-            }
-        }
-
-        return ALPHA_MOVES;
-    }
+    // public static Vector2[] GetHorizontalAlphaMoves()
 
     public static Vector2[] GetBetaMoves(int rotation, Direction direction)
     {

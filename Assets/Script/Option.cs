@@ -11,6 +11,7 @@ public static class Option
     public static int ZONE_HEIGHT = 20;
     public static int ZONE_SIZE = 4;
     public static float GHOST_ALPHA = 0.2f;
+    public static float THREE_D_TEXT_DURATION = 2f;
     public static void Shuffle<T>(this IList<T> array)
     {
         for (var i = array.Count - 1; i > 0; --i)

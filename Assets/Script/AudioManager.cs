@@ -22,7 +22,6 @@ public class AudioManager : MonoBehaviour
     [SerializeField] private AudioClip dropSound;
     [SerializeField] private AudioClip rotateSound;
     [SerializeField] private AudioClip moveSound;
-    [SerializeField] private AudioClip plugSound;
 
     private void Awake()
     {
@@ -70,7 +69,7 @@ public class AudioManager : MonoBehaviour
     public void DropSound() => seSource.PlayOneShot(dropSound);
     public void MoveSound() => seSource.PlayOneShot(moveSound);
     public void RotateSound() => seSource.PlayOneShot(rotateSound);
-    public void PlugSound() => seSource.PlayOneShot(plugSound);
+
 
     public void SetSEVolume(float se) => seSource.volume = se * se;
     public void SetBGMVolume(float bgm) => bgmSource.volume = bgm * bgm;
