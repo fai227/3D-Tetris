@@ -15,6 +15,7 @@ public class PlayerController : MonoBehaviour
     private int currentMinoId;
     private int holdMinoId = -1;
     private bool alreadyHeld = false;
+    private SRS.T_Spin tSpin = SRS.T_Spin.None;
     private GameObject ghostMinoObject;
     private Transform[,,] zone = new Transform[Option.ZONE_SIZE, Option.ZONE_HEIGHT, Option.ZONE_SIZE];
 
@@ -276,6 +277,27 @@ public class PlayerController : MonoBehaviour
         GameObject cubisObject = Instantiate(MinoManager.instance.cubisObject, cubisPisition + transform.position, Quaternion.Euler(0f, angle, 0f), transform);
     }
 
+    private void GenerateTSpin3DText()
+    {
+        Vector3 position = currentMinoObject.transform.localPosition;
+        Vector3 forward = cameraController.GetForwardVector();
+        float angle = Mathf.Atan2(-forward.z, forward.x) * Mathf.Rad2Deg + 90f;
+
+        // 端まで動かす
+        while (true)
+        {
+            position -= forward;
+
+            if (position.x < 0 || position.z < 0) break;
+            if (position.x >= Option.ZONE_SIZE || position.z >= Option.ZONE_SIZE) break;
+        }
+
+        position += forward / 2f;
+
+        GameObject threeDText = tSpin == SRS.T_Spin.T_Spin_Mini ? MinoManager.instance.tSpinMini : MinoManager.instance.tSpin;
+        Instantiate(threeDText, minoPoistion.position + position, Quaternion.Euler(0f, angle, 0f), transform);
+    }
+
     private void RotateMino(Vector3 angle)
     {
         if (currentMinoObject == null) return;
@@ -284,14 +306,18 @@ public class PlayerController : MonoBehaviour
         Quaternion originalRotation = currentMinoObject.transform.rotation;
         Vector3 originalPosition = currentMinoObject.transform.localPosition;
 
+        // T-Spinを初期化
+        tSpin = SRS.T_Spin.None;
+        bool used5Rotation = false;
+
         // 与えられた角度へ回転
         currentMinoObject.transform.rotation = Quaternion.Euler(angle) * currentMinoObject.transform.rotation;
 
         // 第一チェック失敗
         if (!ValidZone(currentMinoObject))
         {
+            // 必要定数定義
             bool allFailed = true;
-
             Vector3 endPosition = originalRotation * Vector3.up;
             Vector2[] alphaMoves;
 
@@ -302,34 +328,43 @@ public class PlayerController : MonoBehaviour
                 SRS.Direction direction = SRS.Direction.Left;
                 if (angle.z < 0) direction = SRS.Direction.Right;
 
-                // 重心がない場合
+                // 重心がない場合のSRS取得
                 if (Mathf.Abs(endPosition.x) < 0.1f && Mathf.Abs(endPosition.y) < 0.1f)
                 {
-                    Debug.Log("重心がないチェック");
+                    Vector3 sidePosition = originalRotation * Vector3.forward;
+                    if (sidePosition.x == 0) alphaMoves = SRS.GetHorizontalAlphaMoves(direction);
+                    else alphaMoves = SRS.GetVerticalAlphaMoves(direction);
                 }
+                // 重心がある場合のSRS取得
                 else
                 {
                     int rotation = Mathf.RoundToInt(Mathf.Repeat(Mathf.Atan2(endPosition.y, endPosition.x) * Mathf.Rad2Deg - 90f, 360f) / 90f);
                     alphaMoves = SRS.GetAlphaMoves(rotation, direction);
+                }
 
-                    // 次のテストを試していく
-                    foreach (Vector2 srsDirection in alphaMoves)
+                // 次のテストを試していく
+                for (int i = 0; i < alphaMoves.Length; i++)
+                {
+                    Vector2 srsDirection = alphaMoves[i];
+                    Vector3 moveDirection = new Vector3(srsDirection.x, srsDirection.y, 0f);
+
+                    // 回転を考慮して移動
+                    currentMinoObject.transform.localPosition = originalPosition + moveDirection;
+
+                    // 移動成功時
+                    if (ValidZone(currentMinoObject))
                     {
-                        Vector3 moveDirection = new Vector3(srsDirection.x, srsDirection.y, 0f);
-
-                        // 回転を考慮して移動
-                        currentMinoObject.transform.localPosition = originalPosition + moveDirection;
-
-                        // 移動成功時
-                        if (ValidZone(currentMinoObject))
+                        if (i == alphaMoves.Length - 1)
                         {
-                            allFailed = false;
-                            break;
+                            used5Rotation = true;
                         }
 
-                        // 元の座標へ戻す
-                        currentMinoObject.transform.localPosition = originalPosition;
+                        allFailed = false;
+                        break;
                     }
+
+                    // 元の座標へ戻す
+                    currentMinoObject.transform.localPosition = originalPosition;
                 }
             }
 
@@ -340,71 +375,99 @@ public class PlayerController : MonoBehaviour
                 SRS.Direction direction = SRS.Direction.Left;
                 if (angle.x < 0) direction = SRS.Direction.Right;
 
-                // 重心がない場合
+                // 重心がない場合のSRS取得
                 if (Mathf.Abs(endPosition.y) < 0.1f && Mathf.Abs(endPosition.z) < 0.1f)
                 {
-                    Debug.Log("重心がないチェック");
+                    Vector3 sidePosition = originalRotation * Vector3.forward;
+                    if (sidePosition.z == 0) alphaMoves = SRS.GetHorizontalAlphaMoves(direction);
+                    else alphaMoves = SRS.GetVerticalAlphaMoves(direction);
                 }
+                // 重心がある場合のSRS取得
                 else
                 {
                     int rotation = Mathf.RoundToInt(Mathf.Repeat(Mathf.Atan2(endPosition.y, -endPosition.z) * Mathf.Rad2Deg - 90f, 360f) / 90f);
                     alphaMoves = SRS.GetAlphaMoves(rotation, direction);
+                }
 
-                    // 次のテストを試していく
-                    foreach (Vector2 srsDirection in alphaMoves)
+                // 次のテストを試していく
+                for (int i = 0; i < alphaMoves.Length; i++)
+                {
+                    Vector2 srsDirection = alphaMoves[i];
+                    Vector3 moveDirection = new Vector3(0f, srsDirection.y, -srsDirection.x);
+
+                    // 回転を考慮して移動
+                    currentMinoObject.transform.localPosition = originalPosition + moveDirection;
+
+                    // 移動成功時
+                    if (ValidZone(currentMinoObject))
                     {
-                        Vector3 moveDirection = new Vector3(0f, srsDirection.y, -srsDirection.x);
-
-                        // 回転を考慮して移動
-                        currentMinoObject.transform.localPosition = originalPosition + moveDirection;
-
-                        // 移動成功時
-                        if (ValidZone(currentMinoObject))
+                        if (i == alphaMoves.Length - 1)
                         {
-                            allFailed = false;
-                            break;
+                            used5Rotation = true;
                         }
 
-                        // 元の座標へ戻す
-                        currentMinoObject.transform.localPosition = originalPosition;
+                        allFailed = false;
+                        break;
                     }
+
+                    // 元の座標へ戻す
+                    currentMinoObject.transform.localPosition = originalPosition;
                 }
             }
             // 回転軸がYの時
             else
             {
+                Vector3 forward = cameraController.GetForwardVector();
+                float cameraAngle = Mathf.Repeat(Mathf.Atan2(forward.x, forward.z) * Mathf.Rad2Deg, 360f);
+                int rotation = Mathf.RoundToInt(Mathf.Repeat(Mathf.Atan2(endPosition.z, endPosition.x) * Mathf.Rad2Deg - 90f, 360f) / 90f);
+
+
                 // 回転の向き
                 SRS.Direction direction = SRS.Direction.Left;
-                if (angle.x < 0) direction = SRS.Direction.Right;
+                if (angle.y > 0) direction = SRS.Direction.Right;
 
-                // 重心がない場合
-                if (Mathf.Abs(endPosition.y) < 0.1f && Mathf.Abs(endPosition.z) < 0.1f)
+                // 重心がない場合のSRS取得
+                if (Mathf.Abs(endPosition.x) < 0.1f && Mathf.Abs(endPosition.z) < 0.1f)
                 {
-                    Debug.Log("重心がないチェック");
+                    Vector3 sidePosition = originalRotation * Vector3.forward;
+
+                    int checkNum = Mathf.RoundToInt(sidePosition.x);  // 奇数で縦
+                    checkNum = (checkNum + Mathf.RoundToInt(cameraAngle / 90f) + 4) % 2;  // 奇数で縦
+
+                    if (checkNum == 1) alphaMoves = SRS.GetVerticalAlphaMoves(direction);
+                    else alphaMoves = SRS.GetHorizontalAlphaMoves(direction);
                 }
+                // 重心がある場合のSRS取得
                 else
                 {
-                    int rotation = Mathf.RoundToInt(Mathf.Repeat(Mathf.Atan2(endPosition.y, -endPosition.z) * Mathf.Rad2Deg - 90f, 360f) / 90f);
+                    rotation = (rotation + Mathf.RoundToInt(cameraAngle / 90f)) % 4;
                     alphaMoves = SRS.GetAlphaMoves(rotation, direction);
+                }
 
-                    // 次のテストを試していく
-                    foreach (Vector2 srsDirection in alphaMoves)
+                // 次のテストを試していく
+                for (int i = 0; i < alphaMoves.Length; i++)
+                {
+                    Vector2 srsDirection = alphaMoves[i];
+                    Vector3 moveDirection = new Vector3(srsDirection.x, 0f, srsDirection.y);
+                    moveDirection = Quaternion.Euler(0f, cameraAngle, 0f) * moveDirection;
+
+                    // 回転を考慮して移動
+                    currentMinoObject.transform.localPosition = originalPosition + moveDirection;
+
+                    // 移動成功時
+                    if (ValidZone(currentMinoObject))
                     {
-                        Vector3 moveDirection = new Vector3(0f, srsDirection.y, -srsDirection.x);
-
-                        // 回転を考慮して移動
-                        currentMinoObject.transform.localPosition = originalPosition + moveDirection;
-
-                        // 移動成功時
-                        if (ValidZone(currentMinoObject))
+                        if (i == alphaMoves.Length - 1)
                         {
-                            allFailed = false;
-                            break;
+                            used5Rotation = true;
                         }
 
-                        // 元の座標へ戻す
-                        currentMinoObject.transform.localPosition = originalPosition;
+                        allFailed = false;
+                        break;
                     }
+
+                    // 元の座標へ戻す
+                    currentMinoObject.transform.localPosition = originalPosition;
                 }
             }
 
@@ -417,14 +480,81 @@ public class PlayerController : MonoBehaviour
 
         }
 
-        // ゴーストとサウンド
+        // T-Spin判定
+        if (currentMinoId == (int)MinoManager.Mino.T)
+        {
+            // 5テストでT-Spin判定されているときは除く
+            if (tSpin == SRS.T_Spin.None)
+            {
+                // 端のミノを入れるリスト
+                List<Vector3> openPos = new();
+                List<Vector3> abcd = new()
+                {
+                    currentMinoObject.transform.rotation * new Vector3(-1f, 1f, 0f),
+                    currentMinoObject.transform.rotation * new Vector3(1f, 1f, 0f),
+                    currentMinoObject.transform.rotation * new Vector3(-1f, -1f, 0f),
+                    currentMinoObject.transform.rotation * new Vector3(1f, -1f, 0f),
+                };
+
+                // 端が埋まってるかのチェック
+                foreach (Vector3 checkPosition in abcd)
+                {
+                    int x = Mathf.RoundToInt(currentMinoObject.transform.localPosition.x + checkPosition.x);
+                    int y = Mathf.RoundToInt(currentMinoObject.transform.localPosition.y + checkPosition.y);
+                    int z = Mathf.RoundToInt(currentMinoObject.transform.localPosition.z + checkPosition.z);
+
+                    if (x < 0) continue;
+                    if (y < 0) continue;
+                    if (z < 0) continue;
+
+                    if (x >= Option.ZONE_SIZE) continue;
+                    if (y >= Option.ZONE_HEIGHT) continue;
+                    if (z >= Option.ZONE_SIZE) continue;
+
+                    if (zone[x, y, z] == null) openPos.Add(checkPosition);
+                }
+
+                // T-Spinの可能性あり
+                if (openPos.Count <= 1)
+                {
+                    if (openPos.Contains(abcd[0]) || openPos.Contains(abcd[1]))
+                    {
+                        tSpin = SRS.T_Spin.T_Spin_Mini;
+                    }
+                    else
+                    {
+                        tSpin = SRS.T_Spin.T_Spin;
+                        // 第5テストが行われている場合は、Miniを昇格
+                        if (used5Rotation) tSpin = SRS.T_Spin.T_Spin;
+                    }
+                }
+            }
+        }
+        else
+        {
+            tSpin = SRS.T_Spin.None;
+        }
+
+        // ゴースト
         GenerateGhost();
-        AudioManager.instance.RotateSound();
+
+        // T-Spin判定
+        if (tSpin != SRS.T_Spin.None) // T-Spinの時は音を変える
+        {
+            GenerateTSpin3DText(); // UI表示
+            AudioManager.instance.PlugSound();
+        }
+        else
+        {
+            AudioManager.instance.RotateSound();
+        }
     }
 
     private void MoveMino(Vector3 vector)
     {
         if (currentMinoObject == null) return;
+
+        tSpin = SRS.T_Spin.None;
 
         currentMinoObject.transform.position += vector;
         if (!ValidZone(currentMinoObject)) currentMinoObject.transform.position -= vector;
@@ -502,6 +632,8 @@ public class PlayerController : MonoBehaviour
 
     private void OnSoftDrop()
     {
+        if (currentMinoObject == null) return;
+        tSpin = SRS.T_Spin.None;
         currentMinoObject.transform.position += Vector3.down;
         if (!ValidZone(currentMinoObject))
         {
@@ -512,7 +644,7 @@ public class PlayerController : MonoBehaviour
 
     private void OnHardDrop()
     {
-
+        if (currentMinoObject == null) return;
         while (ValidZone(currentMinoObject))
         {
             currentMinoObject.transform.position += Vector3.down;
@@ -527,6 +659,7 @@ public class PlayerController : MonoBehaviour
 
     private void OnHold()
     {
+        if (currentMinoObject == null) return;
         if (alreadyHeld) return;
         alreadyHeld = true;
 
