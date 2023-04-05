@@ -5,14 +5,15 @@ using UnityEngine.InputSystem;
 
 public class GameManager : MonoBehaviour
 {
+    public enum GameMode
+    {
+        FourtyLines, ScoreAttack, Marathon, Party
+    }
     public static GameManager instance;
     public static bool isGameStarted = false;
     public static bool isPaused = false;
 
     [SerializeField] private PlayerInputManager playerInputManager;
-
-
-
 
     private void Awake()
     {
@@ -58,7 +59,7 @@ public class GameManager : MonoBehaviour
         }
 
         // カウントダウン開始
-        UIManager.instance.StartCountDown();
+        GameUIManager.instance.StartCountDown();
         yield return new WaitForSeconds(4f);
 
         // ゲームスタート

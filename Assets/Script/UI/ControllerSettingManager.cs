@@ -31,7 +31,6 @@ public class ControllerSettingManager : MonoBehaviour
             playerNameTexts[i].text = (i + 1).ToString() + "P";
         }
 
-
         joinImage.SetActive(playerNum < 4);
     }
 

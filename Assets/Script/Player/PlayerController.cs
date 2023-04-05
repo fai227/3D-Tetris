@@ -309,6 +309,7 @@ public class PlayerController : MonoBehaviour
         // T-Spinを初期化
         tSpin = SRS.T_Spin.None;
         bool used5Rotation = false;
+        bool oOrI = currentMinoId == (int)MinoManager.Mino.I || currentMinoId == (int)MinoManager.Mino.O;
 
         // 与えられた角度へ回転
         currentMinoObject.transform.rotation = Quaternion.Euler(angle) * currentMinoObject.transform.rotation;
@@ -329,7 +330,7 @@ public class PlayerController : MonoBehaviour
                 if (angle.z < 0) direction = SRS.Direction.Right;
 
                 // 重心がない場合のSRS取得
-                if (Mathf.Abs(endPosition.x) < 0.1f && Mathf.Abs(endPosition.y) < 0.1f)
+                if (!oOrI && Mathf.Abs(endPosition.x) < 0.1f && Mathf.Abs(endPosition.y) < 0.1f)
                 {
                     Vector3 sidePosition = originalRotation * Vector3.forward;
                     if (sidePosition.x == 0) alphaMoves = SRS.GetHorizontalAlphaMoves(direction);
@@ -339,7 +340,7 @@ public class PlayerController : MonoBehaviour
                 else
                 {
                     int rotation = Mathf.RoundToInt(Mathf.Repeat(Mathf.Atan2(endPosition.y, endPosition.x) * Mathf.Rad2Deg - 90f, 360f) / 90f);
-                    alphaMoves = SRS.GetAlphaMoves(rotation, direction);
+                    alphaMoves = oOrI ? SRS.GetBetaMoves(rotation, direction) : SRS.GetAlphaMoves(rotation, direction);
                 }
 
                 // 次のテストを試していく
@@ -376,7 +377,7 @@ public class PlayerController : MonoBehaviour
                 if (angle.x < 0) direction = SRS.Direction.Right;
 
                 // 重心がない場合のSRS取得
-                if (Mathf.Abs(endPosition.y) < 0.1f && Mathf.Abs(endPosition.z) < 0.1f)
+                if (!oOrI && Mathf.Abs(endPosition.y) < 0.1f && Mathf.Abs(endPosition.z) < 0.1f)
                 {
                     Vector3 sidePosition = originalRotation * Vector3.forward;
                     if (sidePosition.z == 0) alphaMoves = SRS.GetHorizontalAlphaMoves(direction);
@@ -386,7 +387,7 @@ public class PlayerController : MonoBehaviour
                 else
                 {
                     int rotation = Mathf.RoundToInt(Mathf.Repeat(Mathf.Atan2(endPosition.y, -endPosition.z) * Mathf.Rad2Deg - 90f, 360f) / 90f);
-                    alphaMoves = SRS.GetAlphaMoves(rotation, direction);
+                    alphaMoves = oOrI ? SRS.GetBetaMoves(rotation, direction) : SRS.GetAlphaMoves(rotation, direction);
                 }
 
                 // 次のテストを試していく
@@ -427,7 +428,7 @@ public class PlayerController : MonoBehaviour
                 if (angle.y > 0) direction = SRS.Direction.Right;
 
                 // 重心がない場合のSRS取得
-                if (Mathf.Abs(endPosition.x) < 0.1f && Mathf.Abs(endPosition.z) < 0.1f)
+                if (!oOrI && Mathf.Abs(endPosition.x) < 0.1f && Mathf.Abs(endPosition.z) < 0.1f)
                 {
                     Vector3 sidePosition = originalRotation * Vector3.forward;
 
@@ -441,7 +442,7 @@ public class PlayerController : MonoBehaviour
                 else
                 {
                     rotation = (rotation + Mathf.RoundToInt(cameraAngle / 90f)) % 4;
-                    alphaMoves = SRS.GetAlphaMoves(rotation, direction);
+                    alphaMoves = oOrI ? SRS.GetBetaMoves(rotation, direction) : SRS.GetAlphaMoves(rotation, direction);
                 }
 
                 // 次のテストを試していく

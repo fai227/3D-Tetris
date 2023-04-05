@@ -79,16 +79,16 @@ public static class SRS
 
     private static Vector2[][] BETA_RIGHT_MOVES = new Vector2[][] {
         new Vector2[] {new Vector2(-2, 0), new Vector2( 1, 0), new Vector2(-2, -1), new Vector2( 1, 2)},
-        new Vector2[] {new Vector2(-1, 0), new Vector2( 2, 0), new Vector2(-1,  2), new Vector2( 2,-1)},
-        new Vector2[] {new Vector2( 2, 0), new Vector2(-1, 0), new Vector2( 2,  1), new Vector2(-1,-2)},
         new Vector2[] {new Vector2( 1, 0), new Vector2(-2, 0), new Vector2( 1, -2), new Vector2(-2, 1)},
+        new Vector2[] {new Vector2( 2, 0), new Vector2(-1, 0), new Vector2( 2,  1), new Vector2(-1,-2)},
+        new Vector2[] {new Vector2(-1, 0), new Vector2( 2, 0), new Vector2(-1,  2), new Vector2( 2,-1)},
     };
 
     private static Vector2[][] BETA_LEFT_MOVES = new Vector2[][] {
         new Vector2[] {new Vector2(-1, 0), new Vector2( 2, 0), new Vector2(-1,  2), new Vector2( 2,-1)},
-        new Vector2[] {new Vector2( 2, 0), new Vector2(-1, 0), new Vector2( 2,  1), new Vector2(-1,-2)},
-        new Vector2[] {new Vector2( 1, 0), new Vector2(-2, 0), new Vector2( 1, -2), new Vector2(-2, 1)},
         new Vector2[] {new Vector2(-2, 0), new Vector2( 1, 0), new Vector2(-2, -1), new Vector2( 1, 2)},
+        new Vector2[] {new Vector2( 1, 0), new Vector2(-2, 0), new Vector2( 1, -2), new Vector2(-2, 1)},
+        new Vector2[] {new Vector2( 2, 0), new Vector2(-1, 0), new Vector2( 2,  1), new Vector2(-1,-2)},
     };
 
     public static Vector2[] GetAlphaMoves(int rotation, Direction direction)
