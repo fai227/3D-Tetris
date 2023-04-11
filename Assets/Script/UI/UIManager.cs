@@ -33,6 +33,13 @@ public class UIManager : MonoBehaviour
 
     private void Start()
     {
+        if (PlayerPrefs.HasKey(Option.USERNAME))
+        {
+            string username = PlayerPrefs.GetString(Option.USERNAME);
+            usernamePanel.GetComponentInChildren<InputField>().text = username;
+            GameManager.username = username;
+        }
+
         // すべて非表示
         CanvasGroup[] canvasGroups = new CanvasGroup[] {
             titlePanel, controllerSettingPanel, gamePanel, usernamePanel
@@ -138,6 +145,8 @@ public class UIManager : MonoBehaviour
         string username = usernameInputField.text;
         string filteredResult = WordFilter.Filter(username);
 
+        if (username == "") return;
+
         if (filteredResult.Contains('*'))
         {
             usernameMessageText.DOFade(0f, Option.FADE_DURATION).OnComplete(() =>
@@ -151,7 +160,10 @@ public class UIManager : MonoBehaviour
 
         outline.effectColor = Color.white;
         usernameMessageText.text = "Enter username\nfor the leaderboards.";
+
         PlayerPrefs.SetString(Option.USERNAME, username);
+        GameManager.username = username;
+
         ChangePanel(PanelName.TitlePanel);
     }
 

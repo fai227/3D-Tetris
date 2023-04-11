@@ -6,6 +6,7 @@ using DG.Tweening;
 public class AudioManager : MonoBehaviour
 {
     public static AudioManager instance;
+    private static float bgmVolume = 1f;
     [Header("Audio Sources")]
     [SerializeField] private AudioSource bgmSource;
     [SerializeField] private AudioSource seSource;
@@ -18,11 +19,16 @@ public class AudioManager : MonoBehaviour
     [Header("SE")]
     [SerializeField] private AudioClip attackClip;
     [SerializeField] private AudioClip cubisAttackClip;
-    [SerializeField] private AudioClip cubisClip;
     [SerializeField] private AudioClip dropSound;
     [SerializeField] private AudioClip rotateSound;
     [SerializeField] private AudioClip moveSound;
     [SerializeField] private AudioClip plugSound;
+
+    [Header("Voide")]
+    [SerializeField] private AudioClip cubisClip;
+    [SerializeField] private AudioClip tSpinSingle;
+    [SerializeField] private AudioClip tSpinDouble;
+    [SerializeField] private AudioClip tSpinTriple;
 
     private void Awake()
     {
@@ -31,25 +37,33 @@ public class AudioManager : MonoBehaviour
 
     private void Start()
     {
-        SetNextBGM();
+        SetNormalBGM();
     }
 
-    public void SetNextBGM()
+    public void SetNormalBGM()
     {
         bgmSource.clip = bgmClip;
+        bgmSource.volume = bgmVolume;
         bgmSource.Play();
     }
 
-    public void StartTetrisTheme() => StartCoroutine(TetrisThemeCoroutine());
-    private IEnumerator TetrisThemeCoroutine()
+    public void Pause()
     {
-        float bgmVolume = bgmSource.volume;
-        yield return bgmSource.DOFade(0f, 1f).WaitForCompletion();
+        bgmSource.DOFade(0f, Option.FADE_DURATION).SetUpdate(true);
+    }
 
+    public void Resume()
+    {
+        bgmSource.UnPause();
+        bgmSource.DOFade(bgmVolume, Option.FADE_DURATION).SetUpdate(true);
+    }
+
+    public void StartTetrisTheme()
+    {
+        bgmSource.Pause();
         bgmSource.clip = tetrisTheme;
         bgmSource.volume = bgmVolume;
 
-        yield return new WaitForSeconds(3f);
         bgmSource.PlayOneShot(tetrisIntro);
         bgmSource.PlayDelayed(tetrisIntro.length);
     }
@@ -67,11 +81,18 @@ public class AudioManager : MonoBehaviour
             seSource.PlayOneShot(cubisClip);
         });
     }
+    public void TSpinSingle() => seSource.PlayOneShot(tSpinSingle);
+    public void TSpinDouble() => seSource.PlayOneShot(tSpinDouble);
+    public void TSpinTriple() => seSource.PlayOneShot(tSpinTriple);
     public void DropSound() => seSource.PlayOneShot(dropSound);
     public void MoveSound() => seSource.PlayOneShot(moveSound);
     public void RotateSound() => seSource.PlayOneShot(rotateSound);
     public void PlugSound() => seSource.PlayOneShot(plugSound);
 
     public void SetSEVolume(float se) => seSource.volume = se * se;
-    public void SetBGMVolume(float bgm) => bgmSource.volume = bgm * bgm;
+    public void SetBGMVolume(float bgm)
+    {
+        bgmVolume = bgm * bgm;
+        bgmSource.volume = bgmVolume;
+    }
 }

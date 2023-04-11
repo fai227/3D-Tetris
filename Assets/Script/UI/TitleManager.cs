@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using DG.Tweening;
+using Dan.Main;
 
 public class TitleManager : MonoBehaviour
 {
@@ -23,6 +24,12 @@ public class TitleManager : MonoBehaviour
     private Button previousButton;
     private CanvasGroup previousCanvasGroup;
     private bool changable = true;
+
+    [Header("Leaderboards")]
+    [SerializeField] private RectTransform contentOf40Lines;
+    [SerializeField] private RectTransform contentOfScoreAttack;
+    [SerializeField] private GameObject rankContent;
+
 
     [Header("Options")]
     [SerializeField] private Slider seSlider;
@@ -48,33 +55,50 @@ public class TitleManager : MonoBehaviour
         bgmSlider.value = bgm;
 
         fullscreenToggle.isOn = Screen.fullScreen;
+    }
 
-        // ランキング表示
+    public void ResetLeaderboards()
+    {
+        UpdateLeaderboard(true);
+        UpdateLeaderboard(false);
+    }
 
+    public void UpdateLeaderboard(bool is40Line)
+    {
+        string publicKey = is40Line ? Option.SEACRET_KEY_FOR_40_LINES : Option.SEACRET_KEY_FOR_SCORE_ATTACK;
+        LeaderboardCreator.GetLeaderboard(publicKey, is40Line, (entries) => SetLeaderboard(is40Line, entries));
     }
 
     #region ボタンのコールバック
     public void On40LinesSelected()
     {
         UIManager.instance.ChangePanel(UIManager.PanelName.ControllerSettingPanel);
+        GameManager.gameMode = GameManager.GameMode.FourtyLines;
+        ControllerSettingManager.instance.Initialize();
         GameManager.instance.StartWaitForControlls();
     }
 
     public void OnScoreAttack()
     {
         UIManager.instance.ChangePanel(UIManager.PanelName.ControllerSettingPanel);
+        GameManager.gameMode = GameManager.GameMode.ScoreAttack;
+        ControllerSettingManager.instance.Initialize();
         GameManager.instance.StartWaitForControlls();
     }
 
     public void OnMarathonSelected()
     {
         UIManager.instance.ChangePanel(UIManager.PanelName.ControllerSettingPanel);
+        GameManager.gameMode = GameManager.GameMode.Marathon;
+        ControllerSettingManager.instance.Initialize();
         GameManager.instance.StartWaitForControlls();
     }
 
     public void OnPartySelected()
     {
         UIManager.instance.ChangePanel(UIManager.PanelName.ControllerSettingPanel);
+        GameManager.gameMode = GameManager.GameMode.Party;
+        ControllerSettingManager.instance.Initialize();
         GameManager.instance.StartWaitForControlls();
     }
 
@@ -85,13 +109,17 @@ public class TitleManager : MonoBehaviour
 
     public void OnExitSelected() => UIManager.instance.ExitGame();
 
-    public void OnResetUsernameSelected() => UIManager.instance.ChangePanel(UIManager.PanelName.UsernamePanel);
+    public void OnResetUsernameSelected()
+    {
+        UIManager.instance.ChangePanel(UIManager.PanelName.UsernamePanel);
+    }
     #endregion
 
     #region Windows
     private void ChangeWindow(Button button, CanvasGroup canvasGroup)
     {
         if (!changable) return;
+        if (canvasGroup == previousCanvasGroup) return;
         changable = false;
 
         // 色を変更
@@ -124,16 +152,42 @@ public class TitleManager : MonoBehaviour
         colorBlock.normalColor = color;
         button.colors = colorBlock;
     }
-    #endregion
 
-
-
-    private void StartControllerSetting()
+    private void SetLeaderboard(bool is40Line, Dan.Models.Entry[] entries)
     {
-        UIManager.instance.ChangePanel(UIManager.PanelName.ControllerSettingPanel);  // UIをコントローラーへ
-        ControllerSettingManager.instance.Initialize();  // 表示の初期設定
-        GameManager.instance.StartWaitForControlls();  // 新規コントローラー待機状態へ以降
+        RectTransform parent = is40Line ? contentOf40Lines : contentOfScoreAttack;
+        foreach (RectTransform child in parent) Destroy(child.gameObject);
+
+        // 高さ設定
+        Vector2 size = parent.sizeDelta;
+        size.y = 60f * entries.Length - 10f;
+        parent.sizeDelta = size;
+
+        int i = 1;
+        foreach (Dan.Models.Entry entry in entries)
+        {
+            GameObject content = Instantiate(rankContent, parent);
+
+            // 順位
+            content.transform.GetChild(0).GetComponent<Text>().text = i.ToString();
+
+            // 名前
+            content.transform.GetChild(1).GetComponent<Text>().text = entry.Username;
+
+            // スコア
+            Text scoreText = content.transform.GetChild(2).GetComponent<Text>();
+            if (is40Line)
+            {
+                scoreText.text = Option.ConvertIntToTime(entry.Score);
+            }
+            else
+            {
+                scoreText.text = entry.Score.ToString();
+            }
+            i++;
+        }
     }
+    #endregion
 
     #region Options
     public void OnSEChange(float value)

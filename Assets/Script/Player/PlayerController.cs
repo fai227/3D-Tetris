@@ -2,12 +2,14 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using DG.Tweening;
 
 public class PlayerController : MonoBehaviour
 {
     [Header("Components")]
-    [SerializeField] private CameraController cameraController;
-    [SerializeField] private UIController uIController;
+    public CameraController cameraController;
+    public UIController uIController;
+    public PlayerInput playerInput;
 
     public bool isReady = false;
     private List<int> minoList = new List<int>();
@@ -15,13 +17,20 @@ public class PlayerController : MonoBehaviour
     private int currentMinoId;
     private int holdMinoId = -1;
     private bool alreadyHeld = false;
+    public int score = 0;
+    public int level = 1;
+    public bool gameover = false;
     private SRS.T_Spin tSpin = SRS.T_Spin.None;
+    private Coroutine dropCoroutine;
+    private bool backToBack;
+    private bool softDrop = false;
     private GameObject ghostMinoObject;
+    private int movedTime = 0;
     private Transform[,,] zone = new Transform[Option.ZONE_SIZE, Option.ZONE_HEIGHT, Option.ZONE_SIZE];
 
     [Header("Positions")]
     [SerializeField] private Transform minoPoistion;
-    private static Vector3 spawnPosition = new Vector3(1f, 15f, 1f);
+    private static Vector3 spawnPosition = new Vector3(1f, 20f, 1f);
 
     private void Start()
     {
@@ -57,17 +66,29 @@ public class PlayerController : MonoBehaviour
         currentMinoObject = Instantiate(MinoManager.instance.getMino(currentMinoId), minoPoistion.position + spawnPosition, Quaternion.identity, minoPoistion);
         if (currentMinoId == (int)MinoManager.Mino.I)
         {
-            currentMinoObject.transform.position += new Vector3(0.5f, -0.5f, 0.5f);
+            currentMinoObject.transform.position += new Vector3(0.5f, -0.5f, -0.5f);
         }
         else if (currentMinoId == (int)MinoManager.Mino.O)
         {
-            currentMinoObject.transform.position += new Vector3(0.5f, -0.5f, 0.5f);
+            currentMinoObject.transform.position += new Vector3(0.5f, -0.5f, -0.5f);
         }
-
-        GenerateGhost();
 
         // ネクストを表示
         DisplayNextMinos();
+
+        // 埋まってないかチェック
+        if (!ValidZone(currentMinoObject))
+        {
+            gameover = true;
+            Drop(true);
+            return;
+        }
+
+        // ゴースト生成
+        GenerateGhost();
+
+        // 落とすコルーチンを開始
+        dropCoroutine = StartCoroutine(SoftDropCoroutine());
     }
 
     private void AddMino()
@@ -113,12 +134,15 @@ public class PlayerController : MonoBehaviour
         foreach (GameObject player in players) player.GetComponent<PlayerController>().isReady = false;
     }
 
-    private void Drop() => StartCoroutine(DropCoroutine());
+    private void Drop(bool forceGameOver = false) => StartCoroutine(DropCalculateCoroutine(forceGameOver));
 
-    private IEnumerator DropCoroutine()
+    private IEnumerator DropCalculateCoroutine(bool forceGameOver)
     {
         // 音を鳴らす
         AudioManager.instance.DropSound();
+
+        // 自動で落とすコルーチンを停止
+        StopCoroutine(dropCoroutine);
 
         // ミノを登録する
         foreach (Transform child in currentMinoObject.transform)
@@ -135,50 +159,54 @@ public class PlayerController : MonoBehaviour
         // ゴースト削除
         if (ghostMinoObject != null) Destroy(ghostMinoObject);
 
+
         // そろっているかチェック
         List<int> deletedLine = new();
-        for (int y = 0; y < Option.ZONE_HEIGHT; y++)
+        if (!forceGameOver)
         {
-            bool allFilled = true;
-            for (int x = 0; x < Option.ZONE_SIZE; x++)
+            for (int y = 0; y < Option.ZONE_HEIGHT; y++)
             {
-                if (!allFilled) break;
-                for (int z = 0; z < Option.ZONE_SIZE; z++)
-                {
-                    if (zone[x, y, z] == null)
-                    {
-                        allFilled = false;
-                        break;
-                    }
-                }
-            }
-
-            // すべて埋まっている
-            if (allFilled)
-            {
-                deletedLine.Add(y);
-                // オブジェクトをすべて削除
+                bool allFilled = true;
                 for (int x = 0; x < Option.ZONE_SIZE; x++)
                 {
+                    if (!allFilled) break;
                     for (int z = 0; z < Option.ZONE_SIZE; z++)
                     {
-                        Transform child = zone[x, y, z];
-
-                        // 最後のミノの場合は親を破壊
-                        if (child.parent.childCount <= 1)
+                        if (zone[x, y, z] == null)
                         {
-                            Destroy(child.parent.gameObject);
-                        }
-                        // それ以外はミノを破壊
-                        else
-                        {
-                            Destroy(child.gameObject);
+                            allFilled = false;
+                            break;
                         }
                     }
                 }
 
-                // エフェクトを生成
-                GameObject deleteEffect = Instantiate(MinoManager.instance.deleteEffect, minoPoistion.position + new Vector3(1.5f, y, 1.5f), Quaternion.identity, minoPoistion);
+                // すべて埋まっている
+                if (allFilled)
+                {
+                    deletedLine.Add(y);
+                    // オブジェクトをすべて削除
+                    for (int x = 0; x < Option.ZONE_SIZE; x++)
+                    {
+                        for (int z = 0; z < Option.ZONE_SIZE; z++)
+                        {
+                            Transform child = zone[x, y, z];
+
+                            // 最後のミノの場合は親を破壊
+                            if (child.parent.childCount <= 1)
+                            {
+                                Destroy(child.parent.gameObject);
+                            }
+                            // それ以外はミノを破壊
+                            else
+                            {
+                                Destroy(child.gameObject);
+                            }
+                        }
+                    }
+
+                    // エフェクトを生成
+                    GameObject deleteEffect = Instantiate(MinoManager.instance.deleteEffect, minoPoistion.position + new Vector3(1.5f, y, 1.5f), Quaternion.identity, minoPoistion);
+                }
             }
         }
 
@@ -187,13 +215,35 @@ public class PlayerController : MonoBehaviour
         {
             // 効果音
             AudioManager.instance.AttackSound();
-            if (lineDeleted == 4) AudioManager.instance.Cubis();
+            if (lineDeleted == 4)
 
-            // カメラシェイク
-            cameraController.Shake(lineDeleted == 4);
+                // カメラシェイク
+                cameraController.Shake(lineDeleted == 4);
 
             // 文字表示
-            if (lineDeleted == 4) Generate3DText(MinoManager.instance.cubisObject);
+            if (lineDeleted == 4)
+            {
+                AudioManager.instance.Cubis();
+                Generate3DText(MinoManager.instance.cubisObject);
+            }
+            else if (tSpin != SRS.T_Spin.None)
+            {
+                if (lineDeleted == 1)
+                {
+                    AudioManager.instance.TSpinSingle();
+                    Generate3DText(MinoManager.instance.tSpinSingle);
+                }
+                else if (lineDeleted == 2)
+                {
+                    AudioManager.instance.TSpinDouble();
+                    Generate3DText(MinoManager.instance.tSpinDouble);
+                }
+                else
+                {
+                    AudioManager.instance.TSpinTriple();
+                    Generate3DText(MinoManager.instance.tSpinTriple);
+                }
+            }
 
             // エフェクト待機
             yield return new WaitForSeconds(0.75f);
@@ -228,9 +278,24 @@ public class PlayerController : MonoBehaviour
             }
         }
 
-        // 少し待ってから次のミノを生成
-        yield return new WaitForSeconds(0.2f);
-        GenerateNextMino();
+        if (gameover)
+        {
+            GameManager.instance.OnFinished(this);
+        }
+        else
+        {
+            if (lineDeleted < 4 && tSpin == SRS.T_Spin.None) backToBack = false;
+
+            // スコア計算
+            int addedScore = Option.GetScore(lineDeleted, tSpin, backToBack, level);
+            AddScore(addedScore);
+
+            // BackToBack判定
+            if (lineDeleted == 4 || tSpin != SRS.T_Spin.None) backToBack = true;
+
+            // ミノ生成
+            GenerateNextMino();
+        }
     }
 
     private void GenerateGhost()
@@ -274,7 +339,7 @@ public class PlayerController : MonoBehaviour
         Vector3 cubisPisition = center - new Vector3(2f * forward.x, 0f, 2f * forward.z);
         float angle = Mathf.Atan2(-forward.z, forward.x) * Mathf.Rad2Deg + 90f;
 
-        GameObject cubisObject = Instantiate(MinoManager.instance.cubisObject, cubisPisition + transform.position, Quaternion.Euler(0f, angle, 0f), transform);
+        GameObject cubisObject = Instantiate(textObject, cubisPisition + transform.position, Quaternion.Euler(0f, angle, 0f), transform);
     }
 
     private void GenerateTSpin3DText()
@@ -296,6 +361,22 @@ public class PlayerController : MonoBehaviour
 
         GameObject threeDText = tSpin == SRS.T_Spin.T_Spin_Mini ? MinoManager.instance.tSpinMini : MinoManager.instance.tSpin;
         Instantiate(threeDText, minoPoistion.position + position, Quaternion.Euler(0f, angle, 0f), transform);
+    }
+
+    private void GenerateSoftDropEffect()
+    {
+        GameObject effectObject = Instantiate(currentMinoObject, currentMinoObject.transform.position, currentMinoObject.transform.rotation);
+
+        // 色を変更
+        foreach (Transform child in effectObject.transform)
+        {
+            child.GetComponent<MeshRenderer>().materials[0].DOFade(0f, 1f);
+        }
+
+        effectObject.transform.DOScale(Vector3.one * 1.1f, 0.5f).OnComplete(() =>
+        {
+            effectObject.transform.DOScale(Vector3.one, 0.5f).OnComplete(() => Destroy(effectObject));
+        });
     }
 
     private void RotateMino(Vector3 angle)
@@ -536,6 +617,8 @@ public class PlayerController : MonoBehaviour
             tSpin = SRS.T_Spin.None;
         }
 
+        movedTime++;
+
         // ゴースト
         GenerateGhost();
 
@@ -558,12 +641,108 @@ public class PlayerController : MonoBehaviour
         tSpin = SRS.T_Spin.None;
 
         currentMinoObject.transform.position += vector;
-        if (!ValidZone(currentMinoObject)) currentMinoObject.transform.position -= vector;
+        if (!ValidZone(currentMinoObject))
+        {
+            currentMinoObject.transform.position -= vector;
+        }
         else
         {
+            movedTime++;
             GenerateGhost();
             AudioManager.instance.MoveSound();
         }
+    }
+
+    private void AddScore(int value)
+    {
+        score += value;
+        uIController.SetScore(score);
+    }
+
+    private IEnumerator SoftDropCoroutine()
+    {
+        int heighestY = Mathf.RoundToInt(currentMinoObject.transform.localPosition.y);
+        float elapsedTime = 0f;
+
+        // 落とすためのループ
+        while (true)
+        {
+            float duration = Mathf.Pow(0.8f - ((level - 1) * 0.007f), level - 1);
+            bool previous = softDrop;
+
+            // フレームチェック
+            while (true)
+            {
+                // 変わったかチェック
+                if (previous != softDrop)
+                {
+                    previous = softDrop;
+                    elapsedTime = 0f;
+                }
+
+                // 時間経過を測る
+                if (softDrop)
+                {
+                    if (elapsedTime > duration / Option.SOFT_DROP_RATIO)
+                    {
+                        elapsedTime -= duration / Option.SOFT_DROP_RATIO;
+                        break;
+                    }
+                }
+                else
+                {
+                    if (elapsedTime > duration)
+                    {
+                        elapsedTime -= duration;
+                        break;
+                    }
+                }
+
+                yield return null;
+                elapsedTime += Time.deltaTime;
+            }
+
+            // 一つ下に落とす
+            currentMinoObject.transform.localPosition += Vector3.down;
+
+            // 下に動かせないときはロックダウン待ち
+            if (!ValidZone(currentMinoObject))
+            {
+                currentMinoObject.transform.localPosition -= Vector3.down;
+
+                // 最大回転数を超えている場合は、即設置
+                if (movedTime > Option.MAX_LOCK_DOWN_MOVES)
+                {
+                    break;
+                }
+                // ロックダウン待ち
+                else
+                {
+                    int previousMovedTime = movedTime;
+
+                    // ロックダウン待ち
+                    yield return new WaitForSeconds(Option.LOCK_DOWN_TIME);
+
+                    // 0.5秒前から動いているかチェック
+                    if (movedTime == previousMovedTime)
+                    {
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                int nowHeightY = Mathf.RoundToInt(currentMinoObject.transform.localPosition.y);
+                if (nowHeightY < heighestY)
+                {
+                    heighestY = nowHeightY;
+                    movedTime = 0;
+                }
+            }
+        }
+
+        GenerateSoftDropEffect();
+        Drop();
     }
 
     #region Controlls
@@ -631,29 +810,34 @@ public class PlayerController : MonoBehaviour
         MoveMino(left);
     }
 
-    private void OnSoftDrop()
+    private void OnSoftDrop(InputValue inputValue)
     {
-        if (currentMinoObject == null) return;
-        tSpin = SRS.T_Spin.None;
-        currentMinoObject.transform.position += Vector3.down;
-        if (!ValidZone(currentMinoObject))
+        float value = inputValue.Get<float>();
+        if (value > 0.5f)
         {
-            currentMinoObject.transform.position -= Vector3.down;
-            Drop();
+            softDrop = true;
+        }
+        else
+        {
+            softDrop = false;
         }
     }
 
     private void OnHardDrop()
     {
         if (currentMinoObject == null) return;
+        int height = 0;
         while (ValidZone(currentMinoObject))
         {
             currentMinoObject.transform.position += Vector3.down;
+            height++;
         }
         currentMinoObject.transform.position -= Vector3.down;
+        height--;
 
         // 落とした後のエフェクト生成
         Instantiate(MinoManager.instance.dropParticle).transform.position = currentMinoObject.transform.position - Vector3.down;
+        AddScore(height * Option.HARD_DROP_SCORE);
 
         Drop();
     }
@@ -663,6 +847,9 @@ public class PlayerController : MonoBehaviour
         if (currentMinoObject == null) return;
         if (alreadyHeld) return;
         alreadyHeld = true;
+
+        // 自動で落とすコルーチンを停止
+        StopCoroutine(dropCoroutine);
 
         // ホールドミノがない場合
         if (holdMinoId == -1)
@@ -690,22 +877,42 @@ public class PlayerController : MonoBehaviour
 
     private void OnPause()
     {
-        // ゲーム開始後はポーズする
-        if (GameManager.isGameStarted)
+        // ゲーム開始後かつゲームオーバーでなければポーズする
+        if (GameManager.isGameStarted && !gameover)
         {
+            // ミノがないときはポーズできない
+            if (currentMinoObject == null) return;
 
+            if (GameManager.isPaused)
+            {
+                GameManager.instance.Resume();
+            }
+            else
+            {
+                GameManager.instance.Pause(this);
+            }
             return;
         }
 
-        // ゲーム開始後は準備完了にする
+        // ゲーム開始前は準備完了にする
         ControllerSettingManager.instance.SetReady(gameObject, true);
         isReady = true;
     }
 
     private void OnQuit()
     {
-        // ゲーム開始前のみ可能
-        if (GameManager.isGameStarted) return;
+        // ゲーム開始後かつゲームオーバーでなければポーズする
+        if (GameManager.isGameStarted)
+        {
+            if (!GameManager.isPaused)
+            {
+                GameManager.instance.Pause(this);
+            }
+            else
+            {
+                GameManager.instance.EndGame();
+            }
+        }
 
         // 準備完了中は準備完了を外す
         if (isReady)

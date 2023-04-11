@@ -61,4 +61,12 @@ public class ControllerSettingManager : MonoBehaviour
     }
 
     public void Initialize() => SetInformation(0, -1);
+
+    public void OnBackSelected()
+    {
+        // プレイヤー破棄
+        foreach (GameObject player in GameObject.FindGameObjectsWithTag("Player")) Destroy(player);
+        UIManager.instance.ChangePanel(UIManager.PanelName.TitlePanel);
+        GameManager.instance.EndWaitForControlls();
+    }
 }

@@ -30,6 +30,9 @@ public class MinoManager : MonoBehaviour
     public GameObject cubisObject;
     public GameObject tSpinMini;
     public GameObject tSpin;
+    public GameObject tSpinSingle;
+    public GameObject tSpinDouble;
+    public GameObject tSpinTriple;
 
     public static MinoManager instance;
     private void Awake()

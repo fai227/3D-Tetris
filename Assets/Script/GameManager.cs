@@ -2,6 +2,9 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.SceneManagement;
+using System;
+using Dan.Main;
 
 public class GameManager : MonoBehaviour
 {
@@ -10,19 +13,34 @@ public class GameManager : MonoBehaviour
         FourtyLines, ScoreAttack, Marathon, Party
     }
     public static GameManager instance;
+    public static string username;
     public static bool isGameStarted = false;
     public static bool isPaused = false;
+    private List<PlayerController> players = new();
+    private List<int> finishedPlayers = new();
+    public static GameMode gameMode = GameMode.FourtyLines;
 
     [SerializeField] private PlayerInputManager playerInputManager;
+    [SerializeField] private GameObject titleObject;
+
+    private Coroutine coroutine;
 
     private void Awake()
     {
         instance = this;
     }
 
+    private void Start()
+    {
+        isGameStarted = false;
+        isPaused = false;
+    }
+
     public void StartWaitForControlls()
     {
+        players.Clear();
         playerInputManager.enabled = true;
+        playerInputManager.EnableJoining();
     }
 
     public void EndWaitForControlls()
@@ -30,7 +48,7 @@ public class GameManager : MonoBehaviour
         playerInputManager.enabled = false;
     }
 
-    public void GameStart() => StartCoroutine(GameStartCoroutine());
+    public void GameStart() => coroutine = StartCoroutine(GameStartCoroutine());
 
     private IEnumerator GameStartCoroutine()
     {
@@ -38,11 +56,7 @@ public class GameManager : MonoBehaviour
         EndWaitForControlls();
         isGameStarted = true;
 
-        // 曲再生
-        AudioManager.instance.StartTetrisTheme();
-
         // プレイヤー取得
-        List<PlayerController> players = new();
         foreach (GameObject player in GameObject.FindGameObjectsWithTag("Player"))
         {
             players.Add(player.GetComponent<PlayerController>());
@@ -51,6 +65,7 @@ public class GameManager : MonoBehaviour
         // 1秒待ってUIを変更
         yield return new WaitForSeconds(1f);
         UIManager.instance.ChangePanel(UIManager.PanelName.GamePanel);
+        AudioManager.instance.Pause();
 
         // ネクスト表示
         foreach (PlayerController player in players)
@@ -67,8 +82,63 @@ public class GameManager : MonoBehaviour
         {
             player.GenerateNextMino();
         }
+
+        // 曲再生
+        AudioManager.instance.StartTetrisTheme();
+
+        if (gameMode == GameMode.ScoreAttack) StartCoroutine(ScoreAttackCountdownCoroutine());
     }
 
+    private IEnumerator ScoreAttackCountdownCoroutine()
+    {
+        for (int i = Option.SCORE_ATTACK_TIME; i >= 0; i--)
+        {
+            foreach (PlayerController playerController in players)
+            {
+                playerController.uIController.SetNumber(i);
+            }
+            yield return new WaitForSeconds(1f);
+        }
+
+        foreach (PlayerController playerController in players)
+        {
+            playerController.gameover = true;
+        }
+    }
+
+    public void Pause(PlayerController playerController)
+    {
+        isPaused = true;
+        Time.timeScale = 0f;
+        AudioManager.instance.Pause();
+        GameUIManager.instance.Pause(players.IndexOf(playerController));
+    }
+
+    public void Resume()
+    {
+        isPaused = false;
+        Time.timeScale = 1f;
+        AudioManager.instance.Resume();
+        GameUIManager.instance.Resume();
+    }
+
+    public void EndGame()
+    {
+        isPaused = false;
+        isGameStarted = false;
+        Time.timeScale = 1f;
+        GameUIManager.instance.Resume();
+
+        titleObject.SetActive(true);
+
+        // キーマウ設定
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+
+        AudioManager.instance.SetNormalBGM();
+        foreach (GameObject player in GameObject.FindGameObjectsWithTag("Player")) Destroy(player);
+        UIManager.instance.ChangePanel(UIManager.PanelName.TitlePanel);
+    }
 
     private void OnPlayerJoined(PlayerInput input)
     {
@@ -94,6 +164,9 @@ public class GameManager : MonoBehaviour
         if (index >= 0) players.RemoveAt(index);
 
         int playerLength = players.Count;
+
+        // タイトル設定
+        titleObject.SetActive(playerLength == 0);
 
         // カメラ設定
         for (int i = 0; i < playerLength; i++)
@@ -129,5 +202,109 @@ public class GameManager : MonoBehaviour
         ControllerSettingManager.instance.SetInformation(playerLength, keyboard);
     }
 
+    public void OnFinished(PlayerController playerController)
+    {
+        int index = players.IndexOf(playerController);
+        if (!finishedPlayers.Contains(index))
+            finishedPlayers.Add(index);
 
+        // ゲーム終了判定
+        if (gameMode == GameMode.Party)
+        {
+            if (players.Count - 1 > finishedPlayers.Count) return;
+        }
+        else
+        {
+            if (players.Count > finishedPlayers.Count) return;
+        }
+
+        isGameStarted = false;
+
+        List<PlayerController> winPlayers = new();
+        switch (gameMode)
+        {
+            // 初めにクリアした人が勝ち
+            case GameMode.FourtyLines:
+                {
+                    PlayerController winner = players[finishedPlayers[0]];
+                    winPlayers.Add(winner);
+                    break;
+                }
+
+            // 生き残った人が勝ち
+            case GameMode.Party:
+                {
+                    foreach (PlayerController player in players)
+                    {
+                        if (!player.gameover)
+                        {
+                            winPlayers.Add(player);
+                            break;
+                        }
+                    }
+                    break;
+                }
+
+            // その他はスコアが一番高い人が勝ち
+            default:
+                {
+                    int highestScore = -1;
+
+                    // 一番高い数字を取得
+                    foreach (PlayerController player in players)
+                    {
+                        if (player.score > highestScore) highestScore = player.score;
+                    }
+
+                    // 一番高い数値の人を勝者に認定
+                    foreach (PlayerController player in players)
+                    {
+                        if (player.score == highestScore)
+                        {
+                            winPlayers.Add(player);
+                        }
+                    }
+                    break;
+                }
+        }
+
+        List<int> winners = new();
+        foreach (PlayerController winPlayer in winPlayers)
+        {
+            winners.Add(players.IndexOf(winPlayer));
+        }
+
+        // 操作不可能に
+        foreach (PlayerController player in players) player.playerInput.enabled = false;
+
+        // 一応コルーチン停止
+        StopCoroutine(coroutine);
+
+        // キーマウ設定
+        Cursor.visible = true;
+        Cursor.lockState = CursorLockMode.None;
+
+        // 結果表示
+        GameUIManager.instance.ShowResult(winners);
+
+        // ランキングに反映
+        if (gameMode == GameMode.FourtyLines)
+        {
+
+        }
+        else if (gameMode == GameMode.ScoreAttack)
+        {
+            try
+            {
+                LeaderboardCreator.UploadNewEntry(Option.SEACRET_KEY_FOR_SCORE_ATTACK, username, players[winners[0]].score, (message) =>
+                {
+                    TitleManager.instance.UpdateLeaderboard(false);
+                });
+            }
+            catch (Exception exception)
+            {
+                Debug.Log(exception);
+            }
+        }
+    }
 }

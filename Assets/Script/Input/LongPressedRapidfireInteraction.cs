@@ -30,47 +30,32 @@ public class LongPressedRapidfireInteraction : IInputInteraction
     [Tooltip("ボタンを押したと判断するしきい値")]
     public float pressPoint = 0.5f;
 
+    private bool isPressed = false;
 
     public void Process(ref InputInteractionContext context)
     {
-
-        //連射判断タイミングの処理
         if (context.timerHasExpired)
         {
-            context.Canceled();
-            if (context.ControlIsActuated(pressPoint))
+            if (isPressed)
             {
-                //context.Started();
-                //context.Performed();
-                context.SetTimeout(duration);
+                context.Performed();
+                context.SetTimeout(interval);
+                return;
             }
-            return;
         }
 
-        switch (context.phase)
+        if (context.ControlIsActuated(pressPoint))
         {
-            case InputActionPhase.Waiting:
-                if (context.ControlIsActuated(pressPoint))
-                {
-                    //実行状態にする
-                    //context.Started();
-                    context.Performed();
-                    //連射の振る舞いをするタイミング
-                    context.SetTimeout(duration);
-                }
-                break;
+            if (isPressed) return;
 
-            case InputActionPhase.Performed:
+            context.Performed();
+            context.SetTimeout(duration);
+            isPressed = true;
+            return;
 
-                if (!context.ControlIsActuated(pressPoint))
-                {
-                    //ボタンが離れたらキャンセルにする。
-                    context.Canceled();
-                    return;
-                }
-
-                break;
         }
+
+        isPressed = false;
     }
 
     public void Reset()

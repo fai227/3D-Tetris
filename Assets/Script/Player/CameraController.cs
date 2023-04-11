@@ -19,7 +19,7 @@ public class CameraController : MonoBehaviour
     {
         playerCamera.transform.RotateAround(playerCamera.transform.parent.position, Vector3.up, deltaVelocity.x * velocity.x * Time.deltaTime);
         Vector3 position = playerCamera.transform.localPosition + Vector3.up * deltaVelocity.y * velocity.y * Time.deltaTime;
-        position.y = Mathf.Clamp(position.y, 0f, 10f);
+        position.y = Mathf.Clamp(position.y, 0f, Option.MAX_CAMERA_HEIGHT);
         playerCamera.transform.localPosition = position;
     }
 

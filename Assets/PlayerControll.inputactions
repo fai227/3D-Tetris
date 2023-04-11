@@ -65,7 +65,7 @@
                     "id": "7a1bfb9e-566d-4d66-a725-1e7cc92803f5",
                     "expectedControlType": "Button",
                     "processors": "",
-                    "interactions": "",
+                    "interactions": "LongPressedRapidfire",
                     "initialStateCheck": false
                 },
                 {
@@ -74,7 +74,7 @@
                     "id": "7114eaa8-5419-43de-aff3-634917bb9135",
                     "expectedControlType": "Button",
                     "processors": "",
-                    "interactions": "",
+                    "interactions": "LongPressedRapidfire",
                     "initialStateCheck": false
                 },
                 {
@@ -83,7 +83,7 @@
                     "id": "366c94fd-f52e-456f-8a89-fcd0696ac077",
                     "expectedControlType": "Button",
                     "processors": "",
-                    "interactions": "",
+                    "interactions": "LongPressedRapidfire",
                     "initialStateCheck": false
                 },
                 {
@@ -92,17 +92,17 @@
                     "id": "b5ebe0e3-a703-48f1-9dd0-c4ae56de50ae",
                     "expectedControlType": "Button",
                     "processors": "",
-                    "interactions": "",
+                    "interactions": "LongPressedRapidfire",
                     "initialStateCheck": false
                 },
                 {
                     "name": "SoftDrop",
-                    "type": "Button",
+                    "type": "Value",
                     "id": "1f95ae0a-a7cf-465d-80d8-f7aac4b01f72",
                     "expectedControlType": "Button",
                     "processors": "",
                     "interactions": "",
-                    "initialStateCheck": false
+                    "initialStateCheck": true
                 },
                 {
                     "name": "HardDrop",
@@ -362,6 +362,17 @@
                 },
                 {
                     "name": "",
+                    "id": "0b8b6332-8ad5-4e54-a6da-94e71a75a7c7",
+                    "path": "<Gamepad>/dpad/right",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "MoveRight",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
                     "id": "f4dbebf0-f0e4-42d5-9e83-5efb9b9e1061",
                     "path": "<Gamepad>/leftStick/left",
                     "interactions": "",
@@ -378,6 +389,17 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "Keyboard",
+                    "action": "MoveLeft",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "5b2f5e06-b447-491c-b610-38ee96e49a7d",
+                    "path": "<Gamepad>/dpad/left",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
                     "action": "MoveLeft",
                     "isComposite": false,
                     "isPartOfComposite": false
@@ -422,6 +444,17 @@
                     "interactions": "",
                     "processors": "",
                     "groups": "Keyboard",
+                    "action": "HardDrop",
+                    "isComposite": false,
+                    "isPartOfComposite": false
+                },
+                {
+                    "name": "",
+                    "id": "5a346ab9-faf9-42f5-8283-58db1e234339",
+                    "path": "<Gamepad>/dpad/up",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
                     "action": "HardDrop",
                     "isComposite": false,
                     "isPartOfComposite": false
