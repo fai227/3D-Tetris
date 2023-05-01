@@ -28,6 +28,10 @@ public class PlayerController : MonoBehaviour
     private int movedTime = 0;
     private Transform[,,] zone = new Transform[Option.ZONE_SIZE, Option.ZONE_HEIGHT, Option.ZONE_SIZE];
 
+    [Header("Attack")]
+    public int attackedLine = 0;
+    private GameObject dangerObject;
+
     [Header("Positions")]
     [SerializeField] private Transform minoPoistion;
     private static Vector3 spawnPosition = new Vector3(1f, 20f, 1f);
@@ -277,6 +281,56 @@ public class PlayerController : MonoBehaviour
                 }
             }
         }
+
+        // ライン削除時の計算
+        GameManager.instance.OnLineDeleted(this, lineDeleted, backToBack, tSpin);
+
+        // おじゃま計算
+        while (attackedLine > 0)
+        {
+            // すべてを一つ上に挙げる
+            for (int x = 0; x < Option.ZONE_SIZE; x++)
+            {
+                for (int z = 0; z < Option.ZONE_SIZE; z++)
+                {
+                    // ゾーンを超えるとゲームオーバー
+                    Transform top = zone[x, Option.ZONE_HEIGHT - 1, z];
+                    if (top != null)
+                    {
+                        gameover = true;
+                        top.transform.position += Vector3.up;
+                        top = null;
+                    }
+
+                    // 上から一つずつ上に挙げていく
+                    for (int y = Option.ZONE_HEIGHT - 1; y > 0; y--)
+                    {
+                        Transform down = zone[x, y - 1, z];
+                        if (down != null) down.transform.position += Vector3.up;
+                        zone[x, y, z] = down;
+                    }
+                }
+            }
+
+            // おじゃま生成
+            GameObject garbageObject = Instantiate(MinoManager.instance.garbageObject, minoPoistion.transform);
+            // 一つ穴をあける
+            Destroy(garbageObject.transform.GetChild(Random.Range(0, garbageObject.transform.childCount)).gameObject);
+            // ミノを登録する
+            foreach (Transform child in garbageObject.transform)
+            {
+                int x = Mathf.RoundToInt(child.localPosition.x);
+                int y = Mathf.RoundToInt(child.localPosition.y);
+                int z = Mathf.RoundToInt(child.localPosition.z);
+
+                zone[x, y, z] = child;
+            }
+
+            attackedLine--;
+
+            yield return new WaitForSeconds(.1f);
+        }
+        if (dangerObject != null) Destroy(dangerObject);
 
         if (gameover)
         {
@@ -743,6 +797,17 @@ public class PlayerController : MonoBehaviour
 
         GenerateSoftDropEffect();
         Drop();
+    }
+
+    public void Attacked(int value)
+    {
+        attackedLine += value;
+
+        // エフェクト表示
+        if (dangerObject != null) Destroy(dangerObject);
+        dangerObject = Instantiate(MinoManager.instance.dangerZone, gameObject.transform);
+        dangerObject.transform.localScale = new Vector3(dangerObject.transform.localScale.x, value, dangerObject.transform.localScale.z);
+        dangerObject.transform.localPosition = new Vector3(dangerObject.transform.localPosition.x, value / 2f, dangerObject.transform.localPosition.z);
     }
 
     #region Controlls

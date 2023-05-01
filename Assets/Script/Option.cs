@@ -15,19 +15,20 @@ public static class Option
     public static string SEACRET_KEY_FOR_40_LINES = "4cd5899c245cc90d96476a1cd973b8b34d05b11ee75bbf6b6eaa12546984c4a3";
     public static string SEACRET_KEY_FOR_SCORE_ATTACK = "e61d12cd6f1b603bc7a2822c997197a8ac310a24899403f2a1656f3914a6c433";
     public static int SCORE_ATTACK_TIME = 200;
-    public static int LINE_OF_40_LINES = 40;
+    public static int LINE_OF_40_LINES = 4;
     public static int SOFT_DROP_SCORE = 1;
     public static int HARD_DROP_SCORE = 2;
     public static float LOCK_DOWN_TIME = 0.5f;
     public static float MAX_LOCK_DOWN_MOVES = 15;
     public static float SOFT_DROP_RATIO = 20;
     public static float MAX_CAMERA_HEIGHT = 20f;
+    public static float DANGER_LINE_DURATION = 2f;
 
     public static string ConvertIntToTime(int time)
     {
         string minutes = (time / 6000).ToString("00");
         string seconds = ((time / 100) % 60).ToString("00");
-        string centiseconds = (time % 100).ToString();
+        string centiseconds = (time % 100).ToString("00");
         return $"{minutes}:{seconds}:{centiseconds}";
     }
 
@@ -120,4 +121,60 @@ public static class Option
         return result;
     }
 
+    public static int GetAttackLines(int lines, SRS.T_Spin tSpin, bool backToBack, bool perfectClear)
+    {
+        if (perfectClear) return 10;
+
+        int result = 0;
+
+        if (tSpin == SRS.T_Spin.None)
+        {
+            switch (lines)
+            {
+                case 0:
+                case 1:
+                    result = 0;
+                    break;
+
+                case 2:
+                    result = 1;
+                    break;
+
+                case 3:
+                    result = 2;
+                    break;
+
+                default:
+                    result = 4;
+                    break;
+            }
+        }
+        else if (tSpin == SRS.T_Spin.T_Spin)
+        {
+            switch (lines)
+            {
+                case 0:
+                    result = 0;
+                    break;
+
+                case 1:
+                    result = 2;
+                    break;
+
+                case 2:
+                    result = 4;
+                    break;
+
+                default:
+                    result = 6;
+                    break;
+            }
+        }
+
+        if (backToBack) result += 1;
+
+        return result;
+    }
+
 }
+

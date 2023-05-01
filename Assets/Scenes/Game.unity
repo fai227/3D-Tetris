@@ -12436,6 +12436,7 @@ MonoBehaviour:
   - {fileID: 3103661369931273210, guid: fcbcaba8f8ccc544ea2f798765fecd07, type: 3}
   - {fileID: 6880927359777890919, guid: 91e49a09100c7d44fa652b18cead6f5d, type: 3}
   - {fileID: 1412000694890082801, guid: cc7d0876197be0f468f3d2113db21d7c, type: 3}
+  garbageObject: {fileID: 3349136662236035538, guid: ece6b797318bab8488b4f8bb28798e37, type: 3}
   deleteEffect: {fileID: 5875491400484721533, guid: a3e36a1b7b98a3b4c9718068ef3c85dc, type: 3}
   dropParticle: {fileID: 4429187625914190439, guid: 24a6c9da98c35554b9d62434143e8678, type: 3}
   cubisObject: {fileID: 1247192398197859401, guid: 9c506aa543eb2134a913ec84240cba88, type: 3}
@@ -12444,6 +12445,7 @@ MonoBehaviour:
   tSpinSingle: {fileID: 4894859511132930063, guid: e954fb9ba1e85da4580cfad409b94e14, type: 3}
   tSpinDouble: {fileID: 6951631705118018413, guid: 8c380f2029974cb4d86656a1a6db9ab8, type: 3}
   tSpinTriple: {fileID: 7697602880545349926, guid: 7a668dc59ea374b41a9631fa5eeef442, type: 3}
+  dangerZone: {fileID: 7449219100690753255, guid: aefe3b88a4671244abfa790b9c7b80dc, type: 3}
 --- !u!1 &629792551
 GameObject:
   m_ObjectHideFlags: 0
@@ -23981,7 +23983,7 @@ MonoBehaviour:
     m_HighlightedColor: {r: 1, g: 1, b: 0, a: 1}
     m_PressedColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
     m_SelectedColor: {r: 1, g: 1, b: 0, a: 1}
-    m_DisabledColor: {r: 0, g: 0, b: 0, a: 1}
+    m_DisabledColor: {r: 1, g: 1, b: 1, a: 1}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.25
   m_SpriteState:
@@ -23995,7 +23997,7 @@ MonoBehaviour:
     m_PressedTrigger: Pressed
     m_SelectedTrigger: Selected
     m_DisabledTrigger: Disabled
-  m_Interactable: 0
+  m_Interactable: 1
   m_TargetGraphic: {fileID: 1708600935}
   m_OnClick:
     m_PersistentCalls:
@@ -33817,7 +33819,7 @@ MonoBehaviour:
     m_HighlightedColor: {r: 1, g: 1, b: 0, a: 1}
     m_PressedColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
     m_SelectedColor: {r: 1, g: 1, b: 0, a: 1}
-    m_DisabledColor: {r: 0, g: 0, b: 0, a: 1}
+    m_DisabledColor: {r: 1, g: 1, b: 1, a: 1}
     m_ColorMultiplier: 1
     m_FadeDuration: 0.25
   m_SpriteState:
@@ -33831,7 +33833,7 @@ MonoBehaviour:
     m_PressedTrigger: Pressed
     m_SelectedTrigger: Selected
     m_DisabledTrigger: Disabled
-  m_Interactable: 0
+  m_Interactable: 1
   m_TargetGraphic: {fileID: 1865243192}
   m_OnClick:
     m_PersistentCalls:

@@ -18,6 +18,9 @@ public class GameManager : MonoBehaviour
     public static bool isPaused = false;
     private List<PlayerController> players = new();
     private List<int> finishedPlayers = new();
+    private List<int> leftLines = new();
+    private List<float> times = new();
+    private static float time = 0f;
     public static GameMode gameMode = GameMode.FourtyLines;
 
     [SerializeField] private PlayerInputManager playerInputManager;
@@ -34,6 +37,13 @@ public class GameManager : MonoBehaviour
     {
         isGameStarted = false;
         isPaused = false;
+    }
+
+    private void Update()
+    {
+        if (!isGameStarted) return;
+        if (isPaused) return;
+        time += Time.deltaTime;
     }
 
     public void StartWaitForControlls()
@@ -86,7 +96,19 @@ public class GameManager : MonoBehaviour
         // 曲再生
         AudioManager.instance.StartTetrisTheme();
 
-        if (gameMode == GameMode.ScoreAttack) StartCoroutine(ScoreAttackCountdownCoroutine());
+        if (gameMode == GameMode.ScoreAttack)
+        {
+            StartCoroutine(ScoreAttackCountdownCoroutine());
+        }
+        else if (gameMode == GameMode.FourtyLines)
+        {
+            for (int i = 0; i < players.Count; i++)
+            {
+                times.Add(1000f);
+                leftLines.Add(Option.LINE_OF_40_LINES);
+            }
+            time = 0f;
+        }
     }
 
     private IEnumerator ScoreAttackCountdownCoroutine()
@@ -285,12 +307,33 @@ public class GameManager : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
 
         // 結果表示
-        GameUIManager.instance.ShowResult(winners);
+        if (gameMode == GameMode.FourtyLines)
+        {
+            GameUIManager.instance.ShowResult(winners, (int)(times[winners[0]] * 100f));
+        }
+        else if (gameMode == GameMode.ScoreAttack)
+        {
+            GameUIManager.instance.ShowResult(winners, players[winners[0]].score);
+        }
+        else
+        {
+            GameUIManager.instance.ShowResult(winners);
+        }
 
         // ランキングに反映
         if (gameMode == GameMode.FourtyLines)
         {
-
+            try
+            {
+                LeaderboardCreator.UploadNewEntry(Option.SEACRET_KEY_FOR_40_LINES, username, -(int)(times[winners[0]] * 100f), (message) =>
+                {
+                    TitleManager.instance.UpdateLeaderboard(true);
+                });
+            }
+            catch (Exception exception)
+            {
+                Debug.Log(exception);
+            }
         }
         else if (gameMode == GameMode.ScoreAttack)
         {
@@ -304,6 +347,66 @@ public class GameManager : MonoBehaviour
             catch (Exception exception)
             {
                 Debug.Log(exception);
+            }
+        }
+    }
+
+    public void SetTitleObject(bool active) => titleObject.SetActive(active);
+
+    public void OnLineDeleted(PlayerController playerController, int deletedLine, bool backToBack, SRS.T_Spin tSpin, bool perfectClear = false)
+    {
+        if (gameMode == GameMode.ScoreAttack) return;
+
+        if (gameMode == GameMode.FourtyLines)
+        {
+            int index = players.IndexOf(playerController);
+
+            leftLines[index] -= deletedLine;
+            if (leftLines[index] <= 0)
+            {
+                leftLines[index] = 0;
+            }
+
+            playerController.uIController.SetNumber(leftLines[index]);
+
+            if (leftLines[index] == 0)
+            {
+                times[index] = time;
+                playerController.gameover = true;
+            }
+            return;
+        }
+
+        if (gameMode == GameMode.Party)
+        {
+            int value = Option.GetAttackLines(deletedLine, tSpin, backToBack, perfectClear);
+
+            // 相殺反映
+            if (playerController.attackedLine > 0)
+            {
+                // すべて相殺可能
+                if (value >= playerController.attackedLine)
+                {
+                    value -= playerController.attackedLine;
+                    playerController.attackedLine = 0;
+                }
+                // 一部相殺可能
+                else
+                {
+                    playerController.attackedLine -= value;
+                    value = 0;
+                }
+            }
+
+            // 攻撃がある際
+            if (value > 0)
+            {
+                foreach (PlayerController player in players)
+                {
+                    if (player == playerController) continue;
+
+                    player.Attacked(value);
+                }
             }
         }
     }

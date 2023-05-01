@@ -22,6 +22,8 @@ public class MinoManager : MonoBehaviour
     [SerializeField] private GameObject[] minoUIs;
     public GameObject getMinoUI(int id) => minoUIs[id];
 
+    public GameObject garbageObject;
+
     [Header("Particles")]
     public GameObject deleteEffect;
     public GameObject dropParticle;
@@ -33,6 +35,9 @@ public class MinoManager : MonoBehaviour
     public GameObject tSpinSingle;
     public GameObject tSpinDouble;
     public GameObject tSpinTriple;
+
+    [Header("Danger Zone")]
+    public GameObject dangerZone;
 
     public static MinoManager instance;
     private void Awake()

@@ -52,7 +52,7 @@ public class GameUIManager : MonoBehaviour
         pauseCanvasGroup.DOFade(1f, Option.FADE_DURATION).SetUpdate(true);
     }
 
-    public void ShowResult(List<int> winners)
+    public void ShowResult(List<int> winners, int score = 0)
     {
         resultCanvasGroup.gameObject.SetActive(true);
         resultCanvasGroup.alpha = 0f;
@@ -68,6 +68,18 @@ public class GameUIManager : MonoBehaviour
         if (winners.Count == 1) text += "s";
 
         winnerText.text = text;
+        if (GameManager.gameMode == GameManager.GameMode.FourtyLines)
+        {
+            resultText.text = Option.ConvertIntToTime(score);
+        }
+        else if (GameManager.gameMode == GameManager.GameMode.ScoreAttack)
+        {
+            resultText.text = score.ToString("00000000");
+        }
+        else
+        {
+            resultText.text = "";
+        }
 
         UnityEngine.EventSystems.EventSystem.current.SetSelectedGameObject(backButton);
     }
@@ -81,6 +93,8 @@ public class GameUIManager : MonoBehaviour
 
         // BGM
         AudioManager.instance.SetNormalBGM();
+
+        GameManager.instance.SetTitleObject(true);
 
         // プレイヤー破棄
         foreach (GameObject player in GameObject.FindGameObjectsWithTag("Player")) Destroy(player);

@@ -178,7 +178,7 @@ public class TitleManager : MonoBehaviour
             Text scoreText = content.transform.GetChild(2).GetComponent<Text>();
             if (is40Line)
             {
-                scoreText.text = Option.ConvertIntToTime(entry.Score);
+                scoreText.text = Option.ConvertIntToTime(-entry.Score);
             }
             else
             {
